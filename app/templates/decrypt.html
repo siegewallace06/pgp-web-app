@@ -285,7 +285,7 @@ function handleFileUpload(file) {
         }
     }, 100);
     
-    fetch('/upload-file', {
+    fetchWithCSRF('/upload-file', {
         method: 'POST',
         body: formData
     })
@@ -300,11 +300,14 @@ function handleFileUpload(file) {
             
             if (data.success) {
                 uploadedFileName = data.filename;
+                console.log('Upload successful:', data);
+                console.log('Setting filename to:', data.filename);
                 document.getElementById('uploadedFileName').textContent = data.filename;
                 document.getElementById('uploadedFileSize').textContent = data.size;
                 document.getElementById('uploadedFile').classList.remove('d-none');
                 updateDecryptionStatus();
             } else {
+                console.error('Upload failed:', data);
                 alert('Upload failed: ' + data.message);
             }
         }, 500);
@@ -312,13 +315,14 @@ function handleFileUpload(file) {
     .catch(error => {
         clearInterval(progressInterval);
         document.getElementById('uploadProgress').classList.add('d-none');
+        console.error('Upload error:', error);
         alert('Upload failed: ' + error.message);
     });
 }
 
 function removeUploadedFile() {
     if (uploadedFileName) {
-        fetch(`/delete-file/${uploadedFileName}`, {
+        fetchWithCSRF(`/delete-file/${uploadedFileName}`, {
             method: 'POST'
         })
         .then(response => response.json())
@@ -373,12 +377,14 @@ function updateDecryptionStatus() {
 }
 
 function decryptFile() {
+    console.log('decryptFile called, uploadedFileName:', uploadedFileName);
     if (!uploadedFileName) {
         alert('Please upload an encrypted file first.');
         return;
     }
     
     const passphrase = document.getElementById('passphrase').value;
+    console.log('Starting decryption for:', uploadedFileName);
     
     // Show progress
     document.getElementById('decryptionProgress').classList.remove('d-none');
@@ -390,15 +396,17 @@ function decryptFile() {
         formData.append('passphrase', passphrase);
     }
     
-    fetch('/decrypt-file', {
+    fetchWithCSRF('/decrypt-file', {
         method: 'POST',
         body: formData
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Decrypt response:', data);
         document.getElementById('decryptionProgress').classList.add('d-none');
         
         if (data.success) {
+            console.log('Decryption successful:', data.decrypted_filename);
             decryptedFileName = data.decrypted_filename;
             document.getElementById('decryptedFileName').textContent = data.decrypted_filename;
             document.getElementById('decryptedFileSize').textContent = data.size;
@@ -414,11 +422,13 @@ function decryptFile() {
             // Scroll to result
             document.getElementById('decryptedFileResult').scrollIntoView({ behavior: 'smooth' });
         } else {
+            console.error('Decryption failed:', data);
             alert('Decryption failed: ' + data.message);
             document.getElementById('decryptBtn').disabled = false;
         }
     })
     .catch(error => {
+        console.error('Decrypt error:', error);
         document.getElementById('decryptionProgress').classList.add('d-none');
         document.getElementById('decryptBtn').disabled = false;
         alert('Decryption failed: ' + error.message);
@@ -433,7 +443,7 @@ function downloadDecryptedFile() {
 
 function deleteDecryptedFile() {
     if (decryptedFileName && confirm('Are you sure you want to delete the decrypted file?\n\nThis action cannot be undone.')) {
-        fetch(`/delete-file/${decryptedFileName}`, {
+        fetchWithCSRF(`/delete-file/${decryptedFileName}`, {
             method: 'POST'
         })
         .then(response => response.json())

@@ -207,12 +207,12 @@ class PGPService:
                 'message': f'Error encrypting data: {str(e)}'
             }
 
-    def decrypt_data(self, encrypted_data: str, passphrase: str = None) -> Dict[str, Any]:
+    def decrypt_data(self, encrypted_data, passphrase: str = None) -> Dict[str, Any]:
         """
         Decrypt encrypted data.
 
         Args:
-            encrypted_data: The encrypted data as string
+            encrypted_data: The encrypted data as string or bytes
             passphrase: Passphrase for the private key (if required)
 
         Returns:
@@ -220,8 +220,16 @@ class PGPService:
         """
         try:
             logger.info("Starting data decryption")
-            logger.debug(
-                f"Encrypted data length: {len(encrypted_data)} characters")
+
+            # Handle both bytes and string data
+            if isinstance(encrypted_data, bytes):
+                data_len = len(encrypted_data)
+                unit = "bytes"
+            else:
+                data_len = len(encrypted_data)
+                unit = "characters"
+
+            logger.debug(f"Encrypted data length: {data_len} {unit}")
             logger.debug(
                 f"Passphrase provided: {'Yes' if passphrase else 'No'}")
 
@@ -336,11 +344,11 @@ class PGPService:
             file_size = os.path.getsize(file_path)
             logger.info(f"Encrypted file size: {file_size} bytes")
 
-            with open(file_path, 'r') as f:
+            with open(file_path, 'rb') as f:
                 encrypted_data = f.read()
 
             logger.debug(
-                f"Encrypted data read successfully, length: {len(encrypted_data)} characters")
+                f"Encrypted data read successfully, length: {len(encrypted_data)} bytes")
 
             result = self.decrypt_data(encrypted_data, passphrase)
 

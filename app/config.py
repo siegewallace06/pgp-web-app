@@ -16,8 +16,8 @@ class Config:
     # File upload settings
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
     UPLOAD_FOLDER = os.path.join(basedir, '..', 'uploads')
-    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png',
-                          'jpg', 'jpeg', 'gif', 'doc', 'docx', 'zip'}
+    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'zip',
+                          'gpg', 'asc', 'pgp', 'sig'}  # Added PGP-related extensions
 
     # GnuPG settings
     GNUPG_HOME = os.path.join(basedir, '..', 'gnupg_home')

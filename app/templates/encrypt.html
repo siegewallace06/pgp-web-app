@@ -263,7 +263,7 @@ function handleFileUpload(file) {
         }
     }, 100);
     
-    fetch('/upload-file', {
+    fetchWithCSRF('/upload-file', {
         method: 'POST',
         body: formData
     })
@@ -290,13 +290,14 @@ function handleFileUpload(file) {
     .catch(error => {
         clearInterval(progressInterval);
         document.getElementById('uploadProgress').classList.add('d-none');
+        console.error('Upload error:', error);
         alert('Upload failed: ' + error.message);
     });
 }
 
 function removeUploadedFile() {
     if (uploadedFileName) {
-        fetch(`/delete-file/${uploadedFileName}`, {
+        fetchWithCSRF(`/delete-file/${uploadedFileName}`, {
             method: 'POST'
         })
         .then(response => response.json())
@@ -309,6 +310,10 @@ function removeUploadedFile() {
             } else {
                 alert('Failed to delete file: ' + data.message);
             }
+        })
+        .catch(error => {
+            console.error('Delete file error:', error);
+            alert('Failed to delete file: ' + error.message);
         });
     }
 }
@@ -389,7 +394,7 @@ function encryptFile() {
         formData.append('recipients', recipient);
     });
     
-    fetch('/encrypt-file', {
+    fetchWithCSRF('/encrypt-file', {
         method: 'POST',
         body: formData
     })
@@ -420,6 +425,7 @@ function encryptFile() {
     .catch(error => {
         document.getElementById('encryptionProgress').classList.add('d-none');
         document.getElementById('encryptBtn').disabled = false;
+        console.error('Encryption error:', error);
         alert('Encryption failed: ' + error.message);
     });
 }
@@ -432,7 +438,7 @@ function downloadEncryptedFile() {
 
 function deleteEncryptedFile() {
     if (encryptedFileName && confirm('Are you sure you want to delete the encrypted file?')) {
-        fetch(`/delete-file/${encryptedFileName}`, {
+        fetchWithCSRF(`/delete-file/${encryptedFileName}`, {
             method: 'POST'
         })
         .then(response => response.json())
@@ -443,6 +449,10 @@ function deleteEncryptedFile() {
             } else {
                 alert('Failed to delete file: ' + data.message);
             }
+        })
+        .catch(error => {
+            console.error('Delete file error:', error);
+            alert('Failed to delete file: ' + error.message);
         });
     }
 }

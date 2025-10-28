@@ -26,6 +26,9 @@ def create_app(config_name=None):
     # Initialize extensions
     csrf.init_app(app)
 
+    # Add error handlers
+    setup_error_handlers(app)
+
     # Register blueprints
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
@@ -71,4 +74,66 @@ def setup_logging(app):
         logging.getLogger('app').setLevel(logging.DEBUG)
         logging.getLogger('app.services').setLevel(logging.DEBUG)
         logging.getLogger('app.main').setLevel(logging.DEBUG)
+        logging.getLogger('app.utils').setLevel(logging.DEBUG)
+
+
+def setup_error_handlers(app):
+    """Set up error handlers for the application."""
+    from flask import jsonify, request
+    from flask_wtf.csrf import CSRFError
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        app.logger.error(f"CSRF error: {e.description}")
+        app.logger.error(f"Request URL: {request.url}")
+        app.logger.error(f"Request method: {request.method}")
+        app.logger.error(f"Request headers: {dict(request.headers)}")
+
+        # Return JSON for API endpoints, HTML for regular pages
+        if request.path.startswith('/api/') or request.path in ['/upload-file', '/encrypt-file', '/decrypt-file']:
+            return jsonify({
+                'success': False,
+                'message': 'CSRF token missing or invalid. Please refresh the page and try again.',
+                'error_type': 'csrf_error'
+            }), 400
+        else:
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head><title>CSRF Error</title></head>
+            <body>
+                <h1>Security Error</h1>
+                <p>CSRF token missing or invalid. Please refresh the page and try again.</p>
+                <a href="javascript:history.back()">Go Back</a>
+            </body>
+            </html>
+            """, 400
+
+    @app.errorhandler(400)
+    def handle_bad_request(e):
+        app.logger.error(f"Bad request: {e}")
+        app.logger.error(f"Request URL: {request.url}")
+        app.logger.error(f"Request method: {request.method}")
+
+        if request.path.startswith('/api/') or request.path in ['/upload-file', '/encrypt-file', '/decrypt-file']:
+            return jsonify({
+                'success': False,
+                'message': 'Bad request',
+                'error_type': 'bad_request'
+            }), 400
+        return str(e), 400
+
+    @app.errorhandler(500)
+    def handle_internal_error(e):
+        app.logger.error(f"Internal server error: {e}")
+        app.logger.error(f"Request URL: {request.url}")
+        app.logger.error(f"Request method: {request.method}")
+
+        if request.path.startswith('/api/') or request.path in ['/upload-file', '/encrypt-file', '/decrypt-file']:
+            return jsonify({
+                'success': False,
+                'message': 'Internal server error',
+                'error_type': 'server_error'
+            }), 500
+        return str(e), 500
         logging.getLogger('app.utils').setLevel(logging.DEBUG)

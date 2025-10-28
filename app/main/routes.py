@@ -1,15 +1,18 @@
 """
 Main routes for the PGP Web Application
 """
+from app.main import bp
 import os
 import logging
 from flask import render_template, request, flash, redirect, url_for, jsonify, send_file, current_app
 from werkzeug.utils import secure_filename
-from app.main import bp
+# Import the blueprint at the bottom to avoid circular imports
 from app.services.pgp_service import PGPService
 from app.utils.file_utils import save_uploaded_file, get_file_path, delete_file, format_file_size, get_file_size
 
 logger = logging.getLogger(__name__)
+
+# Import bp after other imports to avoid circular import
 
 
 @bp.route('/')
@@ -135,34 +138,50 @@ def delete_key(keyid):
 def upload_file():
     """Upload a file for encryption/decryption."""
     logger.info("File upload request received")
+    logger.debug(f"Request method: {request.method}")
+    logger.debug(f"Request URL: {request.url}")
+    logger.debug(f"Request headers: {dict(request.headers)}")
+    logger.debug(f"Request content type: {request.content_type}")
+    logger.debug(f"Request form data keys: {list(request.form.keys())}")
+    logger.debug(f"Request files keys: {list(request.files.keys())}")
 
-    if 'file' not in request.files:
-        logger.error("No file in request")
-        return jsonify({'success': False, 'message': 'No file selected'}), 400
+    try:
+        if 'file' not in request.files:
+            logger.error("No file in request")
+            return jsonify({'success': False, 'message': 'No file selected'}), 400
 
-    file = request.files['file']
-    logger.info(f"Processing file: {file.filename}")
-    logger.debug(f"File content type: {file.content_type}")
-    logger.debug(
-        f"File size: {file.content_length if file.content_length else 'unknown'}")
+        file = request.files['file']
+        logger.info(f"Processing file: {file.filename}")
+        logger.debug(f"File content type: {file.content_type}")
+        logger.debug(
+            f"File size: {file.content_length if file.content_length else 'unknown'}")
 
-    success, filename, message = save_uploaded_file(file)
-    logger.info(
-        f"File save result: success={success}, filename={filename}, message={message}")
-
-    if success:
-        file_size = get_file_size(filename)
+        success, filename, message = save_uploaded_file(file)
         logger.info(
-            f"File uploaded successfully: {filename}, size: {file_size} bytes")
+            f"File save result: success={success}, filename={filename}, message={message}")
+
+        if success:
+            file_size = get_file_size(filename)
+            logger.info(
+                f"File uploaded successfully: {filename}, size: {file_size} bytes")
+            return jsonify({
+                'success': True,
+                'filename': filename,
+                'size': format_file_size(file_size),
+                'message': message
+            })
+        else:
+            logger.error(f"File upload failed: {message}")
+            return jsonify({'success': False, 'message': message}), 400
+
+    except Exception as e:
+        logger.error(f"Unexpected error in file upload: {str(e)}")
+        logger.exception("Full traceback:")
         return jsonify({
-            'success': True,
-            'filename': filename,
-            'size': format_file_size(file_size),
-            'message': message
-        })
-    else:
-        logger.error(f"File upload failed: {message}")
-        return jsonify({'success': False, 'message': message}), 400
+            'success': False,
+            'message': f'Upload failed: {str(e)}',
+            'error_type': 'unexpected_error'
+        }), 500
 
 
 @bp.route('/encrypt-file', methods=['POST'])

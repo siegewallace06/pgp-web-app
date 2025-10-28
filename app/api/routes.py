@@ -2,8 +2,10 @@
 API routes for AJAX operations
 """
 from flask import jsonify, request
-from app.api import bp
 from app.services.pgp_service import PGPService
+
+# Import bp after other imports to avoid circular import
+from app.api import bp
 
 
 @bp.route('/key-info/<keyid>')
