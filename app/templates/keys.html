@@ -1,0 +1,464 @@
+{% extends "base.html" %}
+
+{% block title %}Key Management - PGP Web Application{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="bi bi-key me-2"></i>Key Management
+            </h2>
+        </div>
+    </div>
+
+    <!-- Import Key Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-download me-2"></i>Import PGP Key
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.import_key') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="mb-3">
+                            <label for="key_data" class="form-label">PGP Key Data</label>
+                            <textarea class="form-control" id="key_data" name="key_data" rows="8" 
+                                    placeholder="Paste your PGP key here (-----BEGIN PGP PUBLIC KEY BLOCK-----)..." required></textarea>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Paste the complete PGP key block including the header and footer.
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-download me-2"></i>Import Key
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="validateKeyData()">
+                            <i class="bi bi-check-circle me-2"></i>Validate
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Public Keys -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-key me-2"></i>Public Keys
+                        <span class="badge bg-primary ms-2">{{ public_keys|length }}</span>
+                    </h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="refreshKeys()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if public_keys %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>User ID</th>
+                                        <th>Key ID</th>
+                                        <th>Type/Length</th>
+                                        <th>Created</th>
+                                        <th>Expires</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for key in public_keys %}
+                                    <tr class="key-card">
+                                        <td>
+                                            <div class="fw-semibold">
+                                                {% if key.uids %}
+                                                    {{ key.uids[0] }}
+                                                {% else %}
+                                                    <span class="text-muted">No UID</span>
+                                                {% endif %}
+                                            </div>
+                                            {% if key.trust %}
+                                                <small class="badge bg-{{ 'success' if key.trust == 'ultimate' else 'warning' if key.trust == 'full' else 'secondary' }}">
+                                                    {{ key.trust }}
+                                                </small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <code class="small">{{ key.keyid }}</code>
+                                            <br>
+                                            <small class="text-muted" title="{{ key.fingerprint }}">
+                                                {{ key.fingerprint[:16] }}...
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ key.type }}</span>
+                                            <br>
+                                            <small class="text-muted">{{ key.length }} bits</small>
+                                        </td>
+                                        <td>
+                                            {% if key.date %}
+                                                {{ key.date[:10] }}
+                                            {% else %}
+                                                <span class="text-muted">Unknown</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if key.expires %}
+                                                {{ key.expires[:10] }}
+                                            {% else %}
+                                                <span class="text-success">Never</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button type="button" class="btn btn-outline-info" 
+                                                        onclick="exportKey('{{ key.keyid }}')" title="Export">
+                                                    <i class="bi bi-upload"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary" 
+                                                        onclick="viewKeyInfo('{{ key.keyid }}')" title="View Details">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger" 
+                                                        onclick="deleteKey('{{ key.keyid }}', false)" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-key display-4 text-muted"></i>
+                            <h5 class="mt-3 text-muted">No Public Keys Found</h5>
+                            <p class="text-muted">Import a public key or generate a new key pair to get started.</p>
+                            <a href="{{ url_for('main.generate_key') }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-2"></i>Generate Key Pair
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Private Keys -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-shield-lock me-2"></i>Private Keys
+                        <span class="badge bg-danger ms-2">{{ private_keys|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if private_keys %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>User ID</th>
+                                        <th>Key ID</th>
+                                        <th>Type/Length</th>
+                                        <th>Created</th>
+                                        <th>Expires</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for key in private_keys %}
+                                    <tr class="key-card">
+                                        <td>
+                                            <div class="fw-semibold">
+                                                {% if key.uids %}
+                                                    {{ key.uids[0] }}
+                                                {% else %}
+                                                    <span class="text-muted">No UID</span>
+                                                {% endif %}
+                                            </div>
+                                            <span class="badge bg-danger">Private</span>
+                                        </td>
+                                        <td>
+                                            <code class="small">{{ key.keyid }}</code>
+                                            <br>
+                                            <small class="text-muted" title="{{ key.fingerprint }}">
+                                                {{ key.fingerprint[:16] }}...
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ key.type }}</span>
+                                            <br>
+                                            <small class="text-muted">{{ key.length }} bits</small>
+                                        </td>
+                                        <td>
+                                            {% if key.date %}
+                                                {{ key.date[:10] }}
+                                            {% else %}
+                                                <span class="text-muted">Unknown</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if key.expires %}
+                                                {{ key.expires[:10] }}
+                                            {% else %}
+                                                <span class="text-success">Never</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button type="button" class="btn btn-outline-primary" 
+                                                        onclick="viewKeyInfo('{{ key.keyid }}')" title="View Details">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger" 
+                                                        onclick="deleteKey('{{ key.keyid }}', true)" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-shield-lock display-4 text-muted"></i>
+                            <h5 class="mt-3 text-muted">No Private Keys Found</h5>
+                            <p class="text-muted">Generate a new key pair to create your first private key.</p>
+                            <a href="{{ url_for('main.generate_key') }}" class="btn btn-danger">
+                                <i class="bi bi-plus-circle me-2"></i>Generate Key Pair
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Key Modal -->
+<div class="modal fade" id="exportKeyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-upload me-2"></i>Export Public Key
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Public Key Data</label>
+                    <textarea id="exportedKeyData" class="form-control" rows="15" readonly></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary" onclick="copyToClipboard()">
+                        <i class="bi bi-clipboard me-2"></i>Copy to Clipboard
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="downloadKey()">
+                        <i class="bi bi-download me-2"></i>Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Info Modal -->
+<div class="modal fade" id="keyInfoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-info-circle me-2"></i>Key Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="keyInfoContent">
+                <!-- Key info will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentKeyData = '';
+let currentKeyId = '';
+
+function validateKeyData() {
+    const keyData = document.getElementById('key_data').value.trim();
+    
+    if (!keyData) {
+        alert('Please paste a PGP key first.');
+        return;
+    }
+    
+    fetch('/api/validate-key', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ key_data: keyData })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ Key format appears valid');
+        } else {
+            alert('✗ ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error validating key: ' + error.message);
+    });
+}
+
+function exportKey(keyId) {
+    fetch(`/export-key/${keyId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentKeyData = data.key_data;
+            currentKeyId = keyId;
+            document.getElementById('exportedKeyData').value = data.key_data;
+            const modal = new bootstrap.Modal(document.getElementById('exportKeyModal'));
+            modal.show();
+        } else {
+            alert('Error exporting key: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error exporting key: ' + error.message);
+    });
+}
+
+function copyToClipboard() {
+    const textarea = document.getElementById('exportedKeyData');
+    textarea.select();
+    document.execCommand('copy');
+    
+    // Show feedback
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check me-2"></i>Copied!';
+    btn.classList.add('btn-success');
+    btn.classList.remove('btn-primary');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.add('btn-primary');
+        btn.classList.remove('btn-success');
+    }, 2000);
+}
+
+function downloadKey() {
+    const blob = new Blob([currentKeyData], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pgp_key_${currentKeyId}.asc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+function viewKeyInfo(keyId) {
+    fetch(`/api/key-info/${keyId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const key = data.key;
+            const content = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Key ID:</strong><br>
+                        <code>${key.keyid}</code>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Type:</strong><br>
+                        ${key.type} (${key.length} bits)
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-12">
+                        <strong>Fingerprint:</strong><br>
+                        <code class="small">${key.fingerprint}</code>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Created:</strong><br>
+                        ${key.date ? key.date : 'Unknown'}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Expires:</strong><br>
+                        ${key.expires ? key.expires : 'Never'}
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-12">
+                        <strong>User IDs:</strong><br>
+                        ${key.uids && key.uids.length > 0 ? key.uids.map(uid => `<div class="mb-1">${uid}</div>`).join('') : 'No UIDs'}
+                    </div>
+                </div>
+                ${key.trust ? `<hr><div class="row"><div class="col-12"><strong>Trust Level:</strong><br><span class="badge bg-${key.trust === 'ultimate' ? 'success' : key.trust === 'full' ? 'warning' : 'secondary'}">${key.trust}</span></div></div>` : ''}
+            `;
+            
+            document.getElementById('keyInfoContent').innerHTML = content;
+            const modal = new bootstrap.Modal(document.getElementById('keyInfoModal'));
+            modal.show();
+        } else {
+            alert('Error loading key info: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error loading key info: ' + error.message);
+    });
+}
+
+function deleteKey(keyId, isSecret) {
+    const keyType = isSecret ? 'private' : 'public';
+    if (confirm(`Are you sure you want to delete this ${keyType} key?\n\nKey ID: ${keyId}\n\nThis action cannot be undone.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/delete-key/${keyId}`;
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = '{{ csrf_token() }}';
+        
+        const secretInput = document.createElement('input');
+        secretInput.type = 'hidden';
+        secretInput.name = 'secret';
+        secretInput.value = isSecret;
+        
+        form.appendChild(csrfInput);
+        form.appendChild(secretInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function refreshKeys() {
+    location.reload();
+}
+</script>
+{% endblock %}

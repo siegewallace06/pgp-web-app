@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Home - PGP Web Application{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container text-center">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-4 fade-in">
+                    <i class="bi bi-shield-lock me-3"></i>
+                    Secure PGP Encryption
+                </h1>
+                <p class="lead mb-4 fade-in">
+                    Encrypt and decrypt your files securely using PGP (Pretty Good Privacy) encryption.
+                    Generate key pairs, manage your keys, and protect your sensitive data with ease.
+                </p>
+                <div class="d-flex gap-3 justify-content-center flex-wrap fade-in">
+                    <a href="{{ url_for('main.encrypt') }}" class="btn btn-light btn-lg">
+                        <i class="bi bi-lock me-2"></i>Encrypt Files
+                    </a>
+                    <a href="{{ url_for('main.generate_key') }}" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-plus-circle me-2"></i>Generate Keys
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<div class="container">
+    <div class="row g-4">
+        <!-- Encrypt Files -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 fade-in">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-lock"></i>
+                    </div>
+                    <h5 class="card-title">Encrypt Files</h5>
+                    <p class="card-text text-muted">
+                        Upload and encrypt your files using PGP encryption. 
+                        Choose recipients from your key list for secure file sharing.
+                    </p>
+                    <a href="{{ url_for('main.encrypt') }}" class="btn btn-primary">
+                        <i class="bi bi-arrow-right me-2"></i>Start Encrypting
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Decrypt Files -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 fade-in">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-unlock"></i>
+                    </div>
+                    <h5 class="card-title">Decrypt Files</h5>
+                    <p class="card-text text-muted">
+                        Decrypt PGP-encrypted files using your private key. 
+                        Supports password-protected private keys for enhanced security.
+                    </p>
+                    <a href="{{ url_for('main.decrypt') }}" class="btn btn-success">
+                        <i class="bi bi-arrow-right me-2"></i>Start Decrypting
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Management -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 fade-in">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-key"></i>
+                    </div>
+                    <h5 class="card-title">Manage Keys</h5>
+                    <p class="card-text text-muted">
+                        View, import, export, and manage your PGP keys. 
+                        Keep track of both public and private keys in one place.
+                    </p>
+                    <a href="{{ url_for('main.keys') }}" class="btn btn-info">
+                        <i class="bi bi-arrow-right me-2"></i>Manage Keys
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generate Key Pair -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 fade-in">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-plus-circle"></i>
+                    </div>
+                    <h5 class="card-title">Generate Key Pair</h5>
+                    <p class="card-text text-muted">
+                        Create new PGP key pairs with customizable settings. 
+                        Choose key length and add passphrase protection.
+                    </p>
+                    <a href="{{ url_for('main.generate_key') }}" class="btn btn-warning">
+                        <i class="bi bi-arrow-right me-2"></i>Generate Keys
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Features -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 fade-in">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5 class="card-title">Secure & Private</h5>
+                    <p class="card-text text-muted">
+                        All encryption and decryption happens locally. 
+                        Your private keys never leave your system.
+                    </p>
+                    <div class="mt-3">
+                        <span class="badge bg-success me-2">
+                            <i class="bi bi-check2 me-1"></i>Local Processing
+                        </span>
+                        <span class="badge bg-primary">
+                            <i class="bi bi-shield me-1"></i>Secure
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Support -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 fade-in">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon">
+                        <i class="bi bi-files"></i>
+                    </div>
+                    <h5 class="card-title">Multiple Formats</h5>
+                    <p class="card-text text-muted">
+                        Support for various file formats including documents, 
+                        images, archives, and more. Up to 16MB file size.
+                    </p>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            PDF, DOC, IMG, TXT, ZIP and more...
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Quick Overview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="h3 text-primary">
+                                <i class="bi bi-shield-lock"></i>
+                            </div>
+                            <p class="mb-0 fw-semibold">PGP Encryption</p>
+                            <small class="text-muted">Industry Standard</small>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="h3 text-success">
+                                <i class="bi bi-speedometer2"></i>
+                            </div>
+                            <p class="mb-0 fw-semibold">Fast Processing</p>
+                            <small class="text-muted">Optimized Performance</small>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="h3 text-info">
+                                <i class="bi bi-cloud-slash"></i>
+                            </div>
+                            <p class="mb-0 fw-semibold">No Cloud Storage</p>
+                            <small class="text-muted">Complete Privacy</small>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="h3 text-warning">
+                                <i class="bi bi-phone"></i>
+                            </div>
+                            <p class="mb-0 fw-semibold">Responsive Design</p>
+                            <small class="text-muted">Works Everywhere</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add staggered animation to cards
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.fade-in');
+        cards.forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+        });
+    });
+</script>
+{% endblock %}

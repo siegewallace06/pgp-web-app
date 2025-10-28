@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block title %}Decrypt Files - PGP Web Application{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="bi bi-unlock me-2"></i>Decrypt Files
+            </h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- File Upload Section -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-cloud-upload me-2"></i>Upload Encrypted File
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="dropzone" id="fileDropzone" onclick="document.getElementById('fileInput').click()">
+                        <i class="bi bi-file-lock display-4 text-muted mb-3"></i>
+                        <h5 class="text-muted">Drop encrypted files here or click to upload</h5>
+                        <p class="text-muted mb-0">Maximum file size: 16MB</p>
+                        <p class="small text-muted">Supports .gpg, .asc, and other PGP encrypted files</p>
+                        <input type="file" id="fileInput" class="d-none" accept=".gpg,.asc,.pgp">
+                    </div>
+                    
+                    <div id="uploadProgress" class="mt-3 d-none">
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <small class="text-muted">Uploading encrypted file...</small>
+                    </div>
+                    
+                    <div id="uploadedFile" class="mt-3 d-none">
+                        <div class="alert alert-success d-flex align-items-center">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <div class="flex-grow-1">
+                                <strong id="uploadedFileName"></strong><br>
+                                <small id="uploadedFileSize" class="text-muted"></small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeUploadedFile()">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Decryption Options -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-key me-2"></i>Decryption Options
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="passphrase" class="form-label">
+                            <i class="bi bi-shield-lock me-1"></i>Private Key Passphrase
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="passphrase" 
+                                   placeholder="Enter passphrase (if required)">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassphraseVisibility()">
+                                <i id="passphraseToggleIcon" class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Leave empty if your private key is not password protected.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="autoDetect" checked>
+                            <label class="form-check-label" for="autoDetect">
+                                Auto-detect recipient key
+                            </label>
+                        </div>
+                        <small class="text-muted">
+                            Automatically find the correct private key for decryption.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Security Notice -->
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Security Notice
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0 small">
+                        <li>Only decrypt files from trusted sources</li>
+                        <li>Your passphrase is processed locally</li>
+                        <li>Decrypted files are temporarily stored</li>
+                        <li>Delete sensitive files after download</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decryption Control -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-unlock me-2"></i>Decryption Control
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="decryptionStatus" class="mb-3">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Please upload an encrypted file to begin decryption.
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-3 align-items-center">
+                        <button id="decryptBtn" type="button" class="btn btn-primary btn-lg" onclick="decryptFile()" disabled>
+                            <i class="bi bi-unlock me-2"></i>Decrypt File
+                        </button>
+                        
+                        <div id="decryptionProgress" class="d-none">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                <span>Decrypting file...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decrypted File Result -->
+    <div id="decryptedFileResult" class="row mt-4 d-none">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check-circle me-2"></i>File Decrypted Successfully
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 id="decryptedFileName" class="mb-1"></h6>
+                            <small id="decryptedFileSize" class="text-muted"></small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-success" onclick="downloadDecryptedFile()">
+                                <i class="bi bi-download me-2"></i>Download
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" onclick="deleteDecryptedFile()">
+                                <i class="bi bi-trash me-2"></i>Delete
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Security Reminder:</strong> Delete this decrypted file after downloading if it contains sensitive information.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-question-circle me-2"></i>Need Help?
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-file-lock me-2"></i>Supported File Types</h6>
+                            <ul class="small">
+                                <li>.gpg files (GNU Privacy Guard)</li>
+                                <li>.asc files (ASCII armored)</li>
+                                <li>.pgp files (PGP encrypted)</li>
+                                <li>Any file encrypted with PGP</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-shield-exclamation me-2"></i>Troubleshooting</h6>
+                            <ul class="small">
+                                <li>Ensure you have the correct private key</li>
+                                <li>Check if your private key requires a passphrase</li>
+                                <li>Verify the file was encrypted for your key</li>
+                                <li>Make sure the file is not corrupted</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let uploadedFileName = '';
+let decryptedFileName = '';
+
+// File upload handling
+document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+// Drag and drop handling
+const dropzone = document.getElementById('fileDropzone');
+dropzone.addEventListener('dragover', handleDragOver);
+dropzone.addEventListener('drop', handleDrop);
+dropzone.addEventListener('dragenter', handleDragEnter);
+dropzone.addEventListener('dragleave', handleDragLeave);
+
+function handleDragOver(e) {
+    e.preventDefault();
+}
+
+function handleDragEnter(e) {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    if (!dropzone.contains(e.relatedTarget)) {
+        dropzone.classList.remove('dragover');
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        handleFileUpload(files[0]);
+    }
+}
+
+function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) {
+        handleFileUpload(file);
+    }
+}
+
+function handleFileUpload(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Show progress
+    document.getElementById('uploadProgress').classList.remove('d-none');
+    const progressBar = document.querySelector('#uploadProgress .progress-bar');
+    
+    // Simulate progress
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += 10;
+        progressBar.style.width = progress + '%';
+        if (progress >= 90) {
+            clearInterval(progressInterval);
+        }
+    }, 100);
+    
+    fetch('/upload-file', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        
+        setTimeout(() => {
+            document.getElementById('uploadProgress').classList.add('d-none');
+            progressBar.style.width = '0%';
+            
+            if (data.success) {
+                uploadedFileName = data.filename;
+                document.getElementById('uploadedFileName').textContent = data.filename;
+                document.getElementById('uploadedFileSize').textContent = data.size;
+                document.getElementById('uploadedFile').classList.remove('d-none');
+                updateDecryptionStatus();
+            } else {
+                alert('Upload failed: ' + data.message);
+            }
+        }, 500);
+    })
+    .catch(error => {
+        clearInterval(progressInterval);
+        document.getElementById('uploadProgress').classList.add('d-none');
+        alert('Upload failed: ' + error.message);
+    });
+}
+
+function removeUploadedFile() {
+    if (uploadedFileName) {
+        fetch(`/delete-file/${uploadedFileName}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                uploadedFileName = '';
+                document.getElementById('uploadedFile').classList.add('d-none');
+                document.getElementById('fileInput').value = '';
+                updateDecryptionStatus();
+            } else {
+                alert('Failed to delete file: ' + data.message);
+            }
+        });
+    }
+}
+
+function togglePassphraseVisibility() {
+    const passphraseInput = document.getElementById('passphrase');
+    const toggleIcon = document.getElementById('passphraseToggleIcon');
+    
+    if (passphraseInput.type === 'password') {
+        passphraseInput.type = 'text';
+        toggleIcon.className = 'bi bi-eye-slash';
+    } else {
+        passphraseInput.type = 'password';
+        toggleIcon.className = 'bi bi-eye';
+    }
+}
+
+function updateDecryptionStatus() {
+    const hasFile = uploadedFileName !== '';
+    const decryptBtn = document.getElementById('decryptBtn');
+    const statusDiv = document.getElementById('decryptionStatus');
+    
+    if (hasFile) {
+        decryptBtn.disabled = false;
+        statusDiv.innerHTML = `
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle me-2"></i>
+                Ready to decrypt <strong>${uploadedFileName}</strong>.
+            </div>
+        `;
+    } else {
+        decryptBtn.disabled = true;
+        statusDiv.innerHTML = `
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Please upload an encrypted file to begin decryption.
+            </div>
+        `;
+    }
+}
+
+function decryptFile() {
+    if (!uploadedFileName) {
+        alert('Please upload an encrypted file first.');
+        return;
+    }
+    
+    const passphrase = document.getElementById('passphrase').value;
+    
+    // Show progress
+    document.getElementById('decryptionProgress').classList.remove('d-none');
+    document.getElementById('decryptBtn').disabled = true;
+    
+    const formData = new FormData();
+    formData.append('filename', uploadedFileName);
+    if (passphrase) {
+        formData.append('passphrase', passphrase);
+    }
+    
+    fetch('/decrypt-file', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('decryptionProgress').classList.add('d-none');
+        
+        if (data.success) {
+            decryptedFileName = data.decrypted_filename;
+            document.getElementById('decryptedFileName').textContent = data.decrypted_filename;
+            document.getElementById('decryptedFileSize').textContent = data.size;
+            document.getElementById('decryptedFileResult').classList.remove('d-none');
+            
+            // Reset form
+            uploadedFileName = '';
+            document.getElementById('uploadedFile').classList.add('d-none');
+            document.getElementById('fileInput').value = '';
+            document.getElementById('passphrase').value = '';
+            updateDecryptionStatus();
+            
+            // Scroll to result
+            document.getElementById('decryptedFileResult').scrollIntoView({ behavior: 'smooth' });
+        } else {
+            alert('Decryption failed: ' + data.message);
+            document.getElementById('decryptBtn').disabled = false;
+        }
+    })
+    .catch(error => {
+        document.getElementById('decryptionProgress').classList.add('d-none');
+        document.getElementById('decryptBtn').disabled = false;
+        alert('Decryption failed: ' + error.message);
+    });
+}
+
+function downloadDecryptedFile() {
+    if (decryptedFileName) {
+        window.open(`/download-file/${decryptedFileName}`, '_blank');
+    }
+}
+
+function deleteDecryptedFile() {
+    if (decryptedFileName && confirm('Are you sure you want to delete the decrypted file?\n\nThis action cannot be undone.')) {
+        fetch(`/delete-file/${decryptedFileName}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                decryptedFileName = '';
+                document.getElementById('decryptedFileResult').classList.add('d-none');
+            } else {
+                alert('Failed to delete file: ' + data.message);
+            }
+        });
+    }
+}
+
+// Initialize
+updateDecryptionStatus();
+</script>
+{% endblock %}

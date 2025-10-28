@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Key Pair - PGP Web Application{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h2 class="mb-4 text-center">
+                <i class="bi bi-plus-circle me-2"></i>Generate PGP Key Pair
+            </h2>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-key me-2"></i>Key Generation Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="keyGenerationForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
+                        <!-- Identity Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="bi bi-person me-2"></i>Identity Information
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">
+                                        <i class="bi bi-person me-1"></i>Full Name *
+                                    </label>
+                                    <input type="text" class="form-control" id="name" name="name" required
+                                           placeholder="John Doe">
+                                    <div class="form-text">
+                                        Your real name as you want it to appear in the key.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">
+                                        <i class="bi bi-envelope me-1"></i>Email Address *
+                                    </label>
+                                    <input type="email" class="form-control" id="email" name="email" required
+                                           placeholder="john.doe@example.com">
+                                    <div class="form-text">
+                                        Email address associated with this key.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Security Settings -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="bi bi-shield-lock me-2"></i>Security Settings
+                                </h6>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="key_length" class="form-label">
+                                        <i class="bi bi-cpu me-1"></i>Key Length
+                                    </label>
+                                    <select class="form-select" id="key_length" name="key_length">
+                                        <option value="2048">2048 bits (Standard)</option>
+                                        <option value="3072">3072 bits (Enhanced)</option>
+                                        <option value="4096" selected>4096 bits (Maximum Security)</option>
+                                    </select>
+                                    <div class="form-text">
+                                        Longer keys provide better security but may be slower.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="passphrase" class="form-label">
+                                        <i class="bi bi-lock me-1"></i>Passphrase (Optional)
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="passphrase" name="passphrase"
+                                               placeholder="Enter a strong passphrase">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassphraseVisibility()">
+                                            <i id="passphraseToggleIcon" class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">
+                                        Protects your private key. Highly recommended!
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Passphrase Confirmation -->
+                        <div class="row mb-4" id="passphraseConfirmRow" style="display: none;">
+                            <div class="col-md-6 offset-md-6">
+                                <div class="mb-3">
+                                    <label for="passphrase_confirm" class="form-label">
+                                        <i class="bi bi-lock-fill me-1"></i>Confirm Passphrase
+                                    </label>
+                                    <input type="password" class="form-control" id="passphrase_confirm"
+                                           placeholder="Confirm your passphrase">
+                                    <div id="passphraseMatch" class="form-text"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Passphrase Strength Indicator -->
+                        <div class="row mb-4" id="passphraseStrengthRow" style="display: none;">
+                            <div class="col-12">
+                                <div class="mb-2">
+                                    <small class="text-muted">Passphrase Strength:</small>
+                                    <div class="progress" style="height: 8px;">
+                                        <div id="strengthBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <small id="strengthText" class="text-muted">Enter a passphrase to see strength</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Generation Options -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="bi bi-gear me-2"></i>Advanced Options
+                                </h6>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="exportAfterGeneration" checked>
+                                            <label class="form-check-label" for="exportAfterGeneration">
+                                                Show public key after generation
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">Display the public key for easy sharing.</small>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="redirectToKeys" checked>
+                                            <label class="form-check-label" for="redirectToKeys">
+                                                Go to key management after generation
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">Redirect to the keys page to manage your new key.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-outline-secondary me-md-2" onclick="resetForm()">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Reset
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg" id="generateBtn">
+                                <i class="bi bi-plus-circle me-2"></i>Generate Key Pair
+                            </button>
+                        </div>
+                        
+                        <!-- Generation Progress -->
+                        <div id="generationProgress" class="mt-3 d-none">
+                            <div class="d-flex align-items-center justify-content-center">
+                                <div class="spinner-border me-3" role="status"></div>
+                                <div>
+                                    <h6 class="mb-1">Generating your PGP key pair...</h6>
+                                    <small class="text-muted">This may take a few moments depending on your key length.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Security Tips -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>Security Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-shield-check me-2 text-success"></i>Best Practices</h6>
+                            <ul class="small">
+                                <li>Use a strong passphrase with mixed characters</li>
+                                <li>Choose 4096-bit key length for maximum security</li>
+                                <li>Store your private key securely</li>
+                                <li>Keep backups of your keys in safe locations</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Important Notes</h6>
+                            <ul class="small">
+                                <li>Never share your private key or passphrase</li>
+                                <li>Your passphrase cannot be recovered if lost</li>
+                                <li>Longer keys take more time to generate</li>
+                                <li>Public keys can be shared freely with others</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Passphrase visibility toggle
+function togglePassphraseVisibility() {
+    const passphraseInput = document.getElementById('passphrase');
+    const toggleIcon = document.getElementById('passphraseToggleIcon');
+    
+    if (passphraseInput.type === 'password') {
+        passphraseInput.type = 'text';
+        toggleIcon.className = 'bi bi-eye-slash';
+    } else {
+        passphraseInput.type = 'password';
+        toggleIcon.className = 'bi bi-eye';
+    }
+}
+
+// Passphrase strength checker
+function checkPassphraseStrength(passphrase) {
+    let strength = 0;
+    let feedback = '';
+    
+    if (passphrase.length >= 8) strength += 20;
+    if (passphrase.length >= 12) strength += 20;
+    if (/[a-z]/.test(passphrase)) strength += 15;
+    if (/[A-Z]/.test(passphrase)) strength += 15;
+    if (/[0-9]/.test(passphrase)) strength += 15;
+    if (/[^A-Za-z0-9]/.test(passphrase)) strength += 15;
+    
+    if (strength < 30) {
+        feedback = 'Weak';
+        return { strength, feedback, color: 'danger' };
+    } else if (strength < 60) {
+        feedback = 'Fair';
+        return { strength, feedback, color: 'warning' };
+    } else if (strength < 80) {
+        feedback = 'Good';
+        return { strength, feedback, color: 'info' };
+    } else {
+        feedback = 'Strong';
+        return { strength, feedback, color: 'success' };
+    }
+}
+
+// Update passphrase strength indicator
+function updatePassphraseStrength() {
+    const passphrase = document.getElementById('passphrase').value;
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+    
+    if (passphrase) {
+        const result = checkPassphraseStrength(passphrase);
+        strengthBar.style.width = result.strength + '%';
+        strengthBar.className = `progress-bar bg-${result.color}`;
+        strengthText.textContent = result.feedback;
+        strengthText.className = `text-${result.color}`;
+    } else {
+        strengthBar.style.width = '0%';
+        strengthBar.className = 'progress-bar';
+        strengthText.textContent = 'Enter a passphrase to see strength';
+        strengthText.className = 'text-muted';
+    }
+}
+
+// Check passphrase confirmation
+function checkPassphraseMatch() {
+    const passphrase = document.getElementById('passphrase').value;
+    const confirmation = document.getElementById('passphrase_confirm').value;
+    const matchIndicator = document.getElementById('passphraseMatch');
+    
+    if (confirmation) {
+        if (passphrase === confirmation) {
+            matchIndicator.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>Passphrases match';
+            matchIndicator.className = 'form-text text-success';
+        } else {
+            matchIndicator.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i>Passphrases do not match';
+            matchIndicator.className = 'form-text text-danger';
+        }
+    } else {
+        matchIndicator.innerHTML = '';
+        matchIndicator.className = 'form-text';
+    }
+}
+
+// Show/hide passphrase related fields
+function togglePassphraseFields() {
+    const passphrase = document.getElementById('passphrase').value;
+    const confirmRow = document.getElementById('passphraseConfirmRow');
+    const strengthRow = document.getElementById('passphraseStrengthRow');
+    
+    if (passphrase) {
+        confirmRow.style.display = 'block';
+        strengthRow.style.display = 'block';
+    } else {
+        confirmRow.style.display = 'none';
+        strengthRow.style.display = 'none';
+        document.getElementById('passphrase_confirm').value = '';
+    }
+}
+
+// Form validation
+function validateForm() {
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const passphrase = document.getElementById('passphrase').value;
+    const confirmation = document.getElementById('passphrase_confirm').value;
+    
+    if (!name || !email) {
+        alert('Please fill in all required fields.');
+        return false;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        alert('Please enter a valid email address.');
+        return false;
+    }
+    
+    if (passphrase && passphrase !== confirmation) {
+        alert('Passphrases do not match.');
+        return false;
+    }
+    
+    return true;
+}
+
+// Reset form
+function resetForm() {
+    document.getElementById('keyGenerationForm').reset();
+    document.getElementById('passphraseConfirmRow').style.display = 'none';
+    document.getElementById('passphraseStrengthRow').style.display = 'none';
+    updatePassphraseStrength();
+}
+
+// Form submission
+document.getElementById('keyGenerationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+        return;
+    }
+    
+    const generateBtn = document.getElementById('generateBtn');
+    const progressDiv = document.getElementById('generationProgress');
+    
+    // Show progress
+    setButtonLoading(generateBtn, true);
+    progressDiv.classList.remove('d-none');
+    
+    // Submit form
+    this.submit();
+});
+
+// Event listeners
+document.getElementById('passphrase').addEventListener('input', function() {
+    togglePassphraseFields();
+    updatePassphraseStrength();
+    checkPassphraseMatch();
+});
+
+document.getElementById('passphrase_confirm').addEventListener('input', checkPassphraseMatch);
+
+document.getElementById('name').addEventListener('input', function() {
+    this.value = this.value.replace(/[^a-zA-Z\s\-\.]/g, '');
+});
+
+// Initialize
+updatePassphraseStrength();
+</script>
+{% endblock %}
