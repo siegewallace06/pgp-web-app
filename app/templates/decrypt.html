@@ -408,9 +408,35 @@ function decryptFile() {
         if (data.success) {
             console.log('Decryption successful:', data.decrypted_filename);
             decryptedFileName = data.decrypted_filename;
-            document.getElementById('decryptedFileName').textContent = data.decrypted_filename;
-            document.getElementById('decryptedFileSize').textContent = data.size;
-            document.getElementById('decryptedFileResult').classList.remove('d-none');
+            
+            // Check if elements exist before setting content
+            const fileNameElement = document.getElementById('decryptedFileName');
+            const fileSizeElement = document.getElementById('decryptedFileSize');
+            const resultElement = document.getElementById('decryptedFileResult');
+            
+            console.log('DOM elements check:', {
+                fileNameElement: !!fileNameElement,
+                fileSizeElement: !!fileSizeElement,
+                resultElement: !!resultElement
+            });
+            
+            if (fileNameElement) {
+                fileNameElement.textContent = data.decrypted_filename;
+            } else {
+                console.error('decryptedFileName element not found');
+            }
+            
+            if (fileSizeElement) {
+                fileSizeElement.textContent = data.size;
+            } else {
+                console.error('decryptedFileSize element not found');
+            }
+            
+            if (resultElement) {
+                resultElement.classList.remove('d-none');
+            } else {
+                console.error('decryptedFileResult element not found');
+            }
             
             // Reset form
             uploadedFileName = '';
