@@ -7,9 +7,9 @@ services:
       - FLASK_ENV=development
       - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
     volumes:
-      - pgp_uploads:/app/uploads
-      - pgp_gnupg:/app/gnupg_home
-      - pgp_logs:/app/logs
+      - ./storage/pgp_uploads:/app/uploads
+      - ./storage/pgp_gnupg:/app/gnupg_home
+      - ./storage/pgp_logs:/app/logs
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
